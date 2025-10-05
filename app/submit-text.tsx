@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Menu } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { databaseManager } from '../lib/database';
+import { supabaseDatabaseManager } from '../lib/supabaseDatabase';
 import { ScriptParser } from '../lib/scriptParser';
 import HamburgerMenu from '../components/HamburgerMenu';
 
@@ -26,20 +26,20 @@ export default function SubmitTextScreen() {
     setLoading(true);
     try {
       // Create the project with both name and script
-      const project = await databaseManager.createProject(projectName);
-      await databaseManager.updateProjectScript(project.id, scriptText.trim());
-      
+      const project = await supabaseDatabaseManager.createProject(projectName);
+      await supabaseDatabaseManager.updateProjectScript(project.id, scriptText.trim());
+
       // Identify and store characters from the script
       const identifiedCharacters = ScriptParser.identifyCharacters(scriptText.trim());
-      
+
       // Store each character in the database
       for (const characterName of identifiedCharacters) {
-        await databaseManager.createCharacter(project.id, characterName, false);
+        await supabaseDatabaseManager.createCharacter(project.id, characterName, false);
       }
-      
+
       router.push({
         pathname: '/counter-reader',
-        params: { projectId: project.id.toString() }
+        params: { projectId: project.id }
       });
     } catch (error) {
       console.error('Failed to save script:', error);

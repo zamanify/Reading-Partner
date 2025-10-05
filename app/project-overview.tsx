@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Menu, Trash2, CornerUpLeft, Play } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { databaseManager, Project, Character } from '../lib/database';
+import { supabaseDatabaseManager, Project, Character } from '../lib/supabaseDatabase';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function ProjectOverviewScreen() {
@@ -22,8 +22,8 @@ export default function ProjectOverviewScreen() {
     if (!projectId) return;
     
     try {
-      const projectData = await databaseManager.getProjectById(parseInt(projectId));
-      const projectCharacters = await databaseManager.getCharactersByProject(parseInt(projectId));
+      const projectData = await supabaseDatabaseManager.getProjectById(projectId);
+      const projectCharacters = await supabaseDatabaseManager.getCharactersByProject(projectId);
       
       setProject(projectData);
       setCharacters(projectCharacters);
@@ -50,7 +50,7 @@ export default function ProjectOverviewScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await databaseManager.deleteProject(parseInt(projectId!));
+              await supabaseDatabaseManager.deleteProject(projectId!);
               router.replace('/start');
             } catch (error) {
               console.error('Failed to delete project:', error);
