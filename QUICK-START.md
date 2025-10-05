@@ -32,10 +32,7 @@ In your terminal, run:
 npm install
 ```
 
-If you see peer dependency warnings, run:
-```bash
-npm install --legacy-peer-deps
-```
+**Note**: The project is configured with `legacy-peer-deps=true` in `.npmrc` to handle React 19 compatibility. This is normal and safe.
 
 ### 4. Start Your App
 ```bash
