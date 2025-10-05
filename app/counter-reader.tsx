@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Menu } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { databaseManager, Character } from '../lib/database';
+import { supabaseDatabaseManager, Character } from '../lib/supabaseDatabase';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 type Gender = 'Female' | 'Male' | 'Neutral';
@@ -21,7 +21,7 @@ export default function CounterReaderScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
-  const [characterConfigs, setCharacterConfigs] = useState<Record<number, CharacterConfig>>({});
+  const [characterConfigs, setCharacterConfigs] = useState<Record<string, CharacterConfig>>({});
   const [loading, setLoading] = useState(true);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
 
@@ -33,11 +33,11 @@ export default function CounterReaderScreen() {
     if (!projectId) return;
     
     try {
-      const projectCharacters = await databaseManager.getCharactersByProject(parseInt(projectId));
+      const projectCharacters = await supabaseDatabaseManager.getCharactersByProject(projectId);
       setCharacters(projectCharacters);
-      
+
       // Initialize configs for counter readers
-      const configs: Record<number, CharacterConfig> = {};
+      const configs: Record<string, CharacterConfig> = {};
       projectCharacters.forEach(char => {
         if (char.isCounterReader && char.id) {
           configs[char.id] = {
@@ -64,7 +64,7 @@ export default function CounterReaderScreen() {
     if (!character.id) return;
 
     try {
-      await databaseManager.updateCharacterCounterReader(character.id, isCounterReader);
+      await supabaseDatabaseManager.updateCharacterCounterReader(character.id, isCounterReader);
       
       // Update local state
       setCharacters(prev => prev.map(char => 

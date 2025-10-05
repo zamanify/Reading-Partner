@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Menu, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { databaseManager, Project } from '../lib/database';
+import { supabaseDatabaseManager, Project } from '../lib/supabaseDatabase';
 import ProjectItem from '../components/ProjectItem';
 import HamburgerMenu from '../components/HamburgerMenu';
 
@@ -19,8 +19,7 @@ export default function StartPage() {
 
   const loadProjects = async () => {
     try {
-      await databaseManager.initializeDatabase();
-      const projectList = await databaseManager.getProjects();
+      const projectList = await supabaseDatabaseManager.getProjects();
       setProjects(projectList);
     } catch (error) {
       console.error('Failed to load projects:', error);
@@ -37,7 +36,7 @@ export default function StartPage() {
   const handleProjectPress = (project: Project) => {
     router.push({
       pathname: '/project-overview',
-      params: { projectId: project.id.toString() }
+      params: { projectId: project.id }
     });
   };
 
@@ -56,9 +55,9 @@ export default function StartPage() {
     );
   };
 
-  const handleDeleteProject = async (projectId: number) => {
+  const handleDeleteProject = async (projectId: string) => {
     try {
-      await databaseManager.deleteProject(projectId);
+      await supabaseDatabaseManager.deleteProject(projectId);
       setProjects(prev => prev.filter(p => p.id !== projectId));
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -157,7 +156,7 @@ export default function StartPage() {
             <FlatList
               data={projects}
               renderItem={renderProject}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) => item.id}
               style={styles.projectsList}
               showsVerticalScrollIndicator={false}
             />
