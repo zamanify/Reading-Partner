@@ -4,13 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Menu, Trash2, CornerUpLeft, Play } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabaseDatabaseManager, Project, Character } from '../lib/supabaseDatabase';
+import { supabaseDatabaseManager, Project } from '../lib/supabaseDatabase';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function ProjectOverviewScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
   const [project, setProject] = useState<Project | null>(null);
-  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
 
@@ -20,13 +19,11 @@ export default function ProjectOverviewScreen() {
 
   const loadProjectData = async () => {
     if (!projectId) return;
-    
+
     try {
       const projectData = await supabaseDatabaseManager.getProjectById(projectId);
-      const projectCharacters = await supabaseDatabaseManager.getCharactersByProject(projectId);
-      
+
       setProject(projectData);
-      setCharacters(projectCharacters);
     } catch (error) {
       console.error('Failed to load project data:', error);
       Alert.alert('Error', 'Failed to load project data');
@@ -94,19 +91,14 @@ export default function ProjectOverviewScreen() {
   };
 
   const getMainCharacter = () => {
-    const userCharacters = characters.filter(char => !char.isCounterReader);
-    return userCharacters.length > 0 ? userCharacters[0].name : 'Not set';
+    return 'Not set';
   };
 
   const getCounterReaderSettings = () => {
-    const counterReaders = characters.filter(char => char.isCounterReader);
-    if (counterReaders.length === 0) return { gender: 'Not set', mood: 'Not set', tempo: 'Not set' };
-    
-    // For now, return default settings - in a real app, you'd store these configurations
     return {
-      gender: 'Female',
-      mood: 'Comedy', 
-      tempo: 'Normal'
+      gender: 'Not set',
+      mood: 'Not set',
+      tempo: 'Not set'
     };
   };
 
@@ -206,7 +198,7 @@ export default function ProjectOverviewScreen() {
           <View style={styles.settingsGrid}>
             <View style={styles.settingRow}>
               <Text style={styles.settingLabel}>Last saved →</Text>
-              <Text style={styles.settingValue}>{formatDate(project.updatedAt)}</Text>
+              <Text style={styles.settingValue}>{formatDate(project.updated_at)}</Text>
             </View>
             
             <View style={styles.settingRow}>
@@ -224,7 +216,7 @@ export default function ProjectOverviewScreen() {
             <View style={styles.settingRow}>
               <Text style={styles.settingLabel}>Characters →</Text>
               <Text style={styles.settingValue}>
-                {characters.length > 0 ? 'Attributed' : 'Not attributed'}
+                Not attributed
               </Text>
             </View>
             

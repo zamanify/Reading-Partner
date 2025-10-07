@@ -4,7 +4,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Menu } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabaseDatabaseManager, Character } from '../lib/supabaseDatabase';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 type Gender = 'Female' | 'Male' | 'Neutral';
@@ -17,89 +16,65 @@ interface CharacterConfig {
   tempo: Tempo;
 }
 
+interface DummyCharacter {
+  id: string;
+  name: string;
+  isCounterReader: boolean;
+}
+
 export default function CounterReaderScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
-  const [characters, setCharacters] = useState<Character[]>([]);
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+
+  // Dummy character data for UI demonstration
+  const dummyCharacters: DummyCharacter[] = [
+    { id: '1', name: 'Character A', isCounterReader: false },
+    { id: '2', name: 'Character B', isCounterReader: false },
+    { id: '3', name: 'Character C', isCounterReader: false },
+  ];
+
+  const [characters, setCharacters] = useState<DummyCharacter[]>(dummyCharacters);
+  const [selectedCharacter, setSelectedCharacter] = useState<DummyCharacter | null>(null);
   const [characterConfigs, setCharacterConfigs] = useState<Record<string, CharacterConfig>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
-
-  useEffect(() => {
-    loadCharacters();
-  }, []);
-
-  const loadCharacters = async () => {
-    if (!projectId) return;
-    
-    try {
-      const projectCharacters = await supabaseDatabaseManager.getCharactersByProject(projectId);
-      setCharacters(projectCharacters);
-
-      // Initialize configs for counter readers
-      const configs: Record<string, CharacterConfig> = {};
-      projectCharacters.forEach(char => {
-        if (char.isCounterReader && char.id) {
-          configs[char.id] = {
-            gender: 'Female',
-            mood: 'Neutral',
-            tempo: 'NORMAL'
-          };
-        }
-      });
-      setCharacterConfigs(configs);
-    } catch (error) {
-      console.error('Failed to load characters:', error);
-      Alert.alert('Error', 'Failed to load characters');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleCharacterToggle = async (character: Character, isCounterReader: boolean) => {
+  const handleCharacterToggle = (character: DummyCharacter, isCounterReader: boolean) => {
     if (!character.id) return;
 
-    try {
-      await supabaseDatabaseManager.updateCharacterCounterReader(character.id, isCounterReader);
-      
-      // Update local state
-      setCharacters(prev => prev.map(char => 
-        char.id === character.id ? { ...char, isCounterReader } : char
-      ));
+    // Update local state only (no database persistence)
+    setCharacters(prev => prev.map(char =>
+      char.id === character.id ? { ...char, isCounterReader } : char
+    ));
 
-      if (isCounterReader) {
-        // Initialize config for new counter reader
-        setCharacterConfigs(prev => ({
-          ...prev,
-          [character.id!]: {
-            gender: 'Female',
-            mood: 'Neutral',
-            tempo: 'NORMAL'
-          }
-        }));
-        setSelectedCharacter({ ...character, isCounterReader: true });
-      } else {
-        // Remove config and deselect if this was selected
-        setCharacterConfigs(prev => {
-          const newConfigs = { ...prev };
-          delete newConfigs[character.id!];
-          return newConfigs;
-        });
-        if (selectedCharacter?.id === character.id) {
-          setSelectedCharacter(null);
+    if (isCounterReader) {
+      // Initialize config for new counter reader
+      setCharacterConfigs(prev => ({
+        ...prev,
+        [character.id]: {
+          gender: 'Female',
+          mood: 'Neutral',
+          tempo: 'NORMAL'
         }
+      }));
+      setSelectedCharacter({ ...character, isCounterReader: true });
+    } else {
+      // Remove config and deselect if this was selected
+      setCharacterConfigs(prev => {
+        const newConfigs = { ...prev };
+        delete newConfigs[character.id];
+        return newConfigs;
+      });
+      if (selectedCharacter?.id === character.id) {
+        setSelectedCharacter(null);
       }
-    } catch (error) {
-      console.error('Failed to update character:', error);
-      Alert.alert('Error', 'Failed to update character');
     }
   };
 
-  const handleCharacterSelect = (character: Character) => {
+  const handleCharacterSelect = (character: DummyCharacter) => {
     if (character.isCounterReader) {
       setSelectedCharacter(character);
     }
@@ -133,7 +108,7 @@ export default function CounterReaderScreen() {
     setIsMenuVisible(false);
   };
 
-  const renderCharacterToggle = (character: Character) => (
+  const renderCharacterToggle = (character: DummyCharacter) => (
     <View key={character.id} style={styles.characterContainer}>
       <Text style={styles.characterName}>{character.name}</Text>
       <View style={styles.toggleContainer}>

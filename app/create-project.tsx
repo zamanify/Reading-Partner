@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-nativ
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Menu } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { databaseManager } from '../lib/database';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function CreateProjectScreen() {

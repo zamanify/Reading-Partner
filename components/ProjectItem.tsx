@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FileText, MoveVertical as MoreVertical } from 'lucide-react-native';
-import { Project } from '../lib/database';
+import { Project } from '../lib/supabaseDatabase';
 
 interface ProjectItemProps {
   project: Project;
@@ -35,7 +35,7 @@ export default function ProjectItem({ project, onPress, onOptionsPress }: Projec
             {project.name}
           </Text>
           <Text style={styles.projectDate}>
-            {formatDate(project.updatedAt)}
+            {formatDate(project.updated_at)}
           </Text>
         </View>
 
