@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Menu, FileText, Download } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import HamburgerMenu from '../components/HamburgerMenu';
 import { extractTextFromDocument } from '../lib/openaiOCR';
 import { validateFileSize, validatePDFPages } from '../lib/pdfValidator';
