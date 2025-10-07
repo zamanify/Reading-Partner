@@ -78,7 +78,7 @@ async function extractTextFromPDF(
           content: [
             {
               type: 'text',
-              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this PDF document preserving the formatting and structure as much as possible.',
+              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this PDF document preserving the formatting and structure as much as possible. If you are unable to extract text from the file, explain as specifically as possible why extraction failed (e.g., corrupted file, password protected, image-only PDF with no text layer, unsupported format).',
             },
             {
               type: 'file',
@@ -129,7 +129,7 @@ async function extractTextFromDocument_Legacy(
           content: [
             {
               type: 'text',
-              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this document preserving the formatting and structure as much as possible.',
+              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this document preserving the formatting and structure as much as possible. If you are unable to extract text from the file, explain as specifically as possible why extraction failed (e.g., corrupted file, password protected, image-only document with no text layer, unsupported format).',
             },
             {
               type: 'file',
