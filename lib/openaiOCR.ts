@@ -78,7 +78,7 @@ async function extractTextFromPDF(
           content: [
             {
               type: 'text',
-              text: 'Extract all text from this PDF document and return it as plain text. Preserve the formatting and structure as much as possible. Do not add any commentary or explanations, only return the extracted text.',
+              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this PDF document preserving the formatting and structure as much as possible.',
             },
             {
               type: 'file',
@@ -129,7 +129,7 @@ async function extractTextFromDocument_Legacy(
           content: [
             {
               type: 'text',
-              text: 'Extract all text from this document and return it as plain text. Preserve the formatting and structure as much as possible. Do not add any commentary or explanations, only return the extracted text.',
+              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this document preserving the formatting and structure as much as possible.',
             },
             {
               type: 'file',
