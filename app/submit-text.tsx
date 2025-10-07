@@ -24,7 +24,6 @@ export default function SubmitTextScreen() {
 
     setLoading(true);
     try {
-      // Create the project with both name and script
       const project = await supabaseDatabaseManager.createProject(projectName);
       await supabaseDatabaseManager.updateProjectScript(project.id, scriptText.trim());
 

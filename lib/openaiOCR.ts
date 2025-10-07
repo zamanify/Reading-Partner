@@ -6,8 +6,16 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true,
 });
 
+export interface DialogueLine {
+  lineId: string;
+  order: number;
+  character: string;
+  text: string;
+}
+
 export interface OCRResult {
   text: string;
+  lines?: DialogueLine[];
   success: boolean;
   error?: string;
 }
@@ -78,7 +86,7 @@ async function extractTextFromPDF(
           content: [
             {
               type: 'text',
-              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this PDF document preserving the formatting and structure as much as possible. If you are unable to extract text from the file, explain as specifically as possible why extraction failed (e.g., corrupted file, password protected, image-only PDF with no text layer, unsupported format).',
+              text: 'You are a script extraction and dialogue parsing tool. Your output must be in two parts separated by "---DIALOGUE_JSON---":\n\n1. First, extract ALL text from the document exactly as it appears, preserving formatting and structure. Include everything: dialogue, stage directions, scene descriptions, character names, etc.\n\n2. After "---DIALOGUE_JSON---", provide a JSON array containing ONLY the dialogue lines (exclude stage directions, scene descriptions, and action lines). Each line should have:\n- lineId: unique identifier (e.g., "L1", "L2", "L3")\n- order: sequential number starting from 1\n- character: the character name speaking (uppercase)\n- text: the dialogue text only\n\nExample format:\n[FULL SCRIPT TEXT]\n---DIALOGUE_JSON---\n[{"lineId":"L1","order":1,"character":"ASH","text":"Hello."},{"lineId":"L2","order":2,"character":"CHARLIE","text":"Hi."}]\n\nIf you are unable to extract text, explain why extraction failed.',
             },
             {
               type: 'file',
@@ -93,9 +101,9 @@ async function extractTextFromPDF(
       max_tokens: 8192,
     });
 
-    const extractedText = response.choices[0]?.message?.content || '';
+    const extractedContent = response.choices[0]?.message?.content || '';
 
-    if (!extractedText) {
+    if (!extractedContent) {
       return {
         text: '',
         success: false,
@@ -103,8 +111,22 @@ async function extractTextFromPDF(
       };
     }
 
+    const parts = extractedContent.split('---DIALOGUE_JSON---');
+    const extractedText = parts[0]?.trim() || '';
+    let lines: DialogueLine[] | undefined;
+
+    if (parts.length > 1) {
+      try {
+        const jsonText = parts[1].trim();
+        lines = JSON.parse(jsonText);
+      } catch (error) {
+        console.warn('Failed to parse dialogue JSON, continuing without lines:', error);
+      }
+    }
+
     return {
       text: extractedText,
+      lines,
       success: true,
     };
   } catch (error: any) {
@@ -129,7 +151,7 @@ async function extractTextFromDocument_Legacy(
           content: [
             {
               type: 'text',
-              text: 'You are a text extraction tool. Your output must contain ONLY the extracted text from the document, nothing else. Do not include any introductions, preambles, explanations, commentary, or closing remarks. Do not say things like "Here is the text" or "I\'ve extracted" or "Feel free to let me know". Do not add markdown separators or formatting around the text. Start your response immediately with the first word of the document content and end with the last word. Extract all text from this document preserving the formatting and structure as much as possible. If you are unable to extract text from the file, explain as specifically as possible why extraction failed (e.g., corrupted file, password protected, image-only document with no text layer, unsupported format).',
+              text: 'You are a script extraction and dialogue parsing tool. Your output must be in two parts separated by "---DIALOGUE_JSON---":\n\n1. First, extract ALL text from the document exactly as it appears, preserving formatting and structure. Include everything: dialogue, stage directions, scene descriptions, character names, etc.\n\n2. After "---DIALOGUE_JSON---", provide a JSON array containing ONLY the dialogue lines (exclude stage directions, scene descriptions, and action lines). Each line should have:\n- lineId: unique identifier (e.g., "L1", "L2", "L3")\n- order: sequential number starting from 1\n- character: the character name speaking (uppercase)\n- text: the dialogue text only\n\nExample format:\n[FULL SCRIPT TEXT]\n---DIALOGUE_JSON---\n[{"lineId":"L1","order":1,"character":"ASH","text":"Hello."},{"lineId":"L2","order":2,"character":"CHARLIE","text":"Hi."}]\n\nIf you are unable to extract text, explain why extraction failed.',
             },
             {
               type: 'file',
@@ -144,9 +166,9 @@ async function extractTextFromDocument_Legacy(
       max_tokens: 8192,
     });
 
-    const extractedText = response.choices[0]?.message?.content || '';
+    const extractedContent = response.choices[0]?.message?.content || '';
 
-    if (!extractedText) {
+    if (!extractedContent) {
       return {
         text: '',
         success: false,
@@ -154,8 +176,22 @@ async function extractTextFromDocument_Legacy(
       };
     }
 
+    const parts = extractedContent.split('---DIALOGUE_JSON---');
+    const extractedText = parts[0]?.trim() || '';
+    let lines: DialogueLine[] | undefined;
+
+    if (parts.length > 1) {
+      try {
+        const jsonText = parts[1].trim();
+        lines = JSON.parse(jsonText);
+      } catch (error) {
+        console.warn('Failed to parse dialogue JSON, continuing without lines:', error);
+      }
+    }
+
     return {
       text: extractedText,
+      lines,
       success: true,
     };
   } catch (error: any) {

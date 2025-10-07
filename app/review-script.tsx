@@ -5,16 +5,29 @@ import { ArrowLeft, Menu } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabaseDatabaseManager } from '../lib/supabaseDatabase';
+import { DialogueLine } from '../lib/openaiOCR';
 import HamburgerMenu from '../components/HamburgerMenu';
 
 export default function ReviewScriptScreen() {
-  const { projectName, extractedText } = useLocalSearchParams<{ 
+  const { projectName, extractedText, extractedLines } = useLocalSearchParams<{
     projectName: string;
     extractedText: string;
+    extractedLines?: string;
   }>();
   const [scriptText, setScriptText] = useState(extractedText || '');
   const [loading, setLoading] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [lines, setLines] = useState<DialogueLine[] | undefined>(() => {
+    if (extractedLines) {
+      try {
+        return JSON.parse(extractedLines);
+      } catch (error) {
+        console.error('Failed to parse extracted lines:', error);
+        return undefined;
+      }
+    }
+    return undefined;
+  });
 
   const handleBack = () => {
     router.back();
@@ -27,9 +40,13 @@ export default function ReviewScriptScreen() {
 
     setLoading(true);
     try {
-      // Create the project with both name and script
       const project = await supabaseDatabaseManager.createProject(projectName);
-      await supabaseDatabaseManager.updateProjectScript(project.id, scriptText.trim());
+
+      if (lines && lines.length > 0) {
+        await supabaseDatabaseManager.updateProjectScriptAndLines(project.id, scriptText.trim(), lines);
+      } else {
+        await supabaseDatabaseManager.updateProjectScript(project.id, scriptText.trim());
+      }
 
       router.push({
         pathname: '/counter-reader',

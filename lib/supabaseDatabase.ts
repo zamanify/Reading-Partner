@@ -1,10 +1,12 @@
 import { supabase } from './supabase';
+import { DialogueLine } from './openaiOCR';
 
 export interface Project {
   id: string;
   user_id: string;
   name: string;
   script?: string;
+  lines?: DialogueLine[];
   created_at: string;
   updated_at: string;
 }
@@ -96,7 +98,35 @@ class SupabaseDatabaseManager {
     }
   }
 
-  async updateProjectScript(id: string, script: string): Promise<void> {
+  async updateProjectScript(id: string, script: string, lines?: DialogueLine[]): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const updateData: any = {
+      script,
+      updated_at: new Date().toISOString()
+    };
+
+    if (lines !== undefined) {
+      updateData.lines = lines;
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update(updateData)
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to update project script:', error);
+      throw error;
+    }
+  }
+
+  async updateProjectScriptAndLines(id: string, script: string, lines: DialogueLine[]): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -105,12 +135,16 @@ class SupabaseDatabaseManager {
 
     const { error } = await supabase
       .from('projects')
-      .update({ script, updated_at: new Date().toISOString() })
+      .update({
+        script,
+        lines,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .eq('user_id', user.id);
 
     if (error) {
-      console.error('Failed to update project script:', error);
+      console.error('Failed to update project script and lines:', error);
       throw error;
     }
   }

@@ -55,6 +55,7 @@ export default function UploadDocumentScreen() {
 
     try {
       let extractedText = '';
+      let extractedLines;
 
       if (selectedFile.mimeType === 'text/plain' || selectedFile.name.toLowerCase().endsWith('.txt')) {
         extractedText = await FileSystem.readAsStringAsync(selectedFile.uri);
@@ -91,6 +92,7 @@ export default function UploadDocumentScreen() {
         }
 
         extractedText = ocrResult.text;
+        extractedLines = ocrResult.lines;
 
         if (!extractedText || extractedText.trim().length === 0) {
           Alert.alert(
@@ -105,12 +107,18 @@ export default function UploadDocumentScreen() {
 
       setIsProcessing(false);
 
+      const params: any = {
+        projectName,
+        extractedText
+      };
+
+      if (extractedLines && extractedLines.length > 0) {
+        params.extractedLines = JSON.stringify(extractedLines);
+      }
+
       router.push({
         pathname: '/review-script',
-        params: {
-          projectName,
-          extractedText
-        }
+        params
       });
     } catch (error) {
       console.error('Failed to process file:', error);
