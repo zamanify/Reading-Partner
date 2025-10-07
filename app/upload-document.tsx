@@ -6,6 +6,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import HamburgerMenu from '../components/HamburgerMenu';
+import { extractTextFromDocument } from '../lib/openaiOCR';
+import { validateFileSize, validatePDFPages } from '../lib/pdfValidator';
 
 interface SelectedFile {
   name: string;
@@ -54,34 +56,55 @@ export default function UploadDocumentScreen() {
     try {
       let extractedText = '';
 
-      // Check if it's a plain text file
       if (selectedFile.mimeType === 'text/plain' || selectedFile.name.toLowerCase().endsWith('.txt')) {
-        // Read the content of the text file
         extractedText = await FileSystem.readAsStringAsync(selectedFile.uri);
       } else {
-        // For other file types (PDF, Word, RTF), show a message that parsing is not yet supported
-        Alert.alert(
-          'File Type Not Supported',
-          'Currently, only TXT files can be parsed. PDF, Word, and RTF parsing will be available in a future update.',
-          [{ text: 'OK' }]
+        const sizeValidation = await validateFileSize(selectedFile.uri, 5);
+        if (!sizeValidation.isValid) {
+          Alert.alert('File Too Large', sizeValidation.error || 'File exceeds 5MB limit');
+          setIsProcessing(false);
+          return;
+        }
+
+        if (selectedFile.mimeType === 'application/pdf') {
+          const pageValidation = await validatePDFPages(selectedFile.uri, 10);
+          if (!pageValidation.isValid) {
+            Alert.alert('Too Many Pages', pageValidation.error || 'PDF exceeds 10 page limit');
+            setIsProcessing(false);
+            return;
+          }
+        }
+
+        const ocrResult = await extractTextFromDocument(
+          selectedFile.uri,
+          selectedFile.mimeType
         );
-        setIsProcessing(false);
-        return;
+
+        if (!ocrResult.success) {
+          Alert.alert(
+            'OCR Failed',
+            ocrResult.error || 'Failed to extract text from the document. Please try again or use a different file format.',
+            [{ text: 'OK' }]
+          );
+          setIsProcessing(false);
+          return;
+        }
+
+        extractedText = ocrResult.text;
       }
 
       setIsProcessing(false);
-      
-      // Navigate to review screen with extracted text
+
       router.push({
         pathname: '/review-script',
-        params: { 
+        params: {
           projectName,
           extractedText
         }
       });
     } catch (error) {
-      console.error('Failed to read file:', error);
-      Alert.alert('Error', 'Failed to read the selected file');
+      console.error('Failed to process file:', error);
+      Alert.alert('Error', 'Failed to process the selected file. Please try again.');
       setIsProcessing(false);
     }
   };
