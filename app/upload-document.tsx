@@ -82,7 +82,7 @@ export default function UploadDocumentScreen() {
 
         if (!ocrResult.success) {
           Alert.alert(
-            'OCR Failed',
+            'Extraction Failed',
             ocrResult.error || 'Failed to extract text from the document. Please try again or use a different file format.',
             [{ text: 'OK' }]
           );
@@ -91,6 +91,16 @@ export default function UploadDocumentScreen() {
         }
 
         extractedText = ocrResult.text;
+
+        if (!extractedText || extractedText.trim().length === 0) {
+          Alert.alert(
+            'No Text Found',
+            'No text could be extracted from the document. Please make sure the document contains readable text.',
+            [{ text: 'OK' }]
+          );
+          setIsProcessing(false);
+          return;
+        }
       }
 
       setIsProcessing(false);
