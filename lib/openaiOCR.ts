@@ -8,14 +8,31 @@ const openai = new OpenAI({
 
 export interface DialogueLine {
   lineId: string;
-  order: number;
   character: string;
   text: string;
+}
+
+export interface Scene {
+  sceneId: string;
+  heading: string;
+  startLineId?: string;
+  endLineId?: string;
+  pageStart: number | null;
+  pageEnd: number | null;
+}
+
+export interface ParsedResponse {
+  sourceSha256: string;
+  lines: DialogueLine[];
+  scenes: Scene[];
+  error?: string;
 }
 
 export interface OCRResult {
   text: string;
   lines?: DialogueLine[];
+  scenes?: Scene[];
+  sourceSha256?: string;
   success: boolean;
   error?: string;
 }
@@ -78,15 +95,7 @@ async function extractTextFromPDF(
   try {
     const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'You are a deterministic script extraction and dialogue parser. Follow these rules exactly. If any rule is unclear, prefer omission over invention.
+    const promptText = `You are a deterministic script extraction and dialogue parser. Follow these rules exactly. If any rule is unclear, prefer omission over invention.
 
 GLOBAL OUTPUT CONTRACT
 - Output exactly two sections, in this order, separated by this exact delimiter on its own line:
@@ -110,7 +119,7 @@ Produce one JSON object with only these keys:
     {
       "lineId": "L1",
       "character": "ASH",
-      "text": "I’ve got it!"
+      "text": "I've got it!"
     }
   ],
   "scenes": [
@@ -139,12 +148,12 @@ JSON field rules
 
 Dialogue detection heuristics (apply in order)
 1. Speaker block start: A line that is (a) primarily uppercase letters (allow ÅÄÖ and diacritics), numbers or dots, and (b) not a scene heading/transitions. Examples: CHARLIE, ASH, MERRILL, JAN, HOFFMAN.
-2. Parentheticals on their own line directly under a speaker ((CONT’D), stage-asides): exclude from text unless inline within the dialogue sentence. Keep the dialogue text as printed otherwise.
+2. Parentheticals on their own line directly under a speaker ((CONT'D), stage-asides): exclude from text unless inline within the dialogue sentence. Keep the dialogue text as printed otherwise.
 3. Dialogue continuation with intervening action: If the same speaker resumes immediately after a single block of action/stage direction without a new speaker name and the typography clearly continues the thought, treat it as the same logical line and merge the text with a single space.
 4. Interrupted lines / cut-offs: If a line ends with a hyphen/en-dash/em-dash indicating interruption (e.g., Helene..- or trailing -), preserve the exact dash character(s) in text. Do not normalize or remove the dash.
 5. Exclude non-dialogue: Scene headings like INT./EXT., transitions (CUT TO:), SFX-only lines, and pure action blocks are not lines.
-6. Bilingual scripts: Keep language and punctuation as printed; don’t translate (e.g., Swedish – DAG, English - NIGHT).
-7. Speaker with (CONT’D): Remove the literal (CONT’D) from character but keep it for continuity logic. If (O.S.), (V.O.) etc. appear next to the name, exclude from character but retain any such notes only if embedded within text.
+6. Bilingual scripts: Keep language and punctuation as printed; don't translate (e.g., Swedish – DAG, English - NIGHT).
+7. Speaker with (CONT'D): Remove the literal (CONT'D) from character but keep it for continuity logic. If (O.S.), (V.O.) etc. appear next to the name, exclude from character but retain any such notes only if embedded within text.
 
 Hard safety checks (model self-validation)
 Before emitting final output:
@@ -155,8 +164,17 @@ Before emitting final output:
 Failure mode
 If extraction truly fails (e.g., unreadable file), output:
 - Section 1: an empty string, then the delimiter, then
-- Section 2: JSON object with "sourceSha256" of the empty string, and an additional key "error" describing why extraction failed. No extra prose anywhere.
-',
+- Section 2: JSON object with "sourceSha256" of the empty string, and an additional key "error" describing why extraction failed. No extra prose anywhere.`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: promptText,
             },
             {
               type: 'file',
@@ -184,11 +202,25 @@ If extraction truly fails (e.g., unreadable file), output:
     const parts = extractedContent.split('---DIALOGUE_JSON---');
     const extractedText = parts[0]?.trim() || '';
     let lines: DialogueLine[] | undefined;
+    let scenes: Scene[] | undefined;
+    let sourceSha256: string | undefined;
 
     if (parts.length > 1) {
       try {
         const jsonText = parts[1].trim();
-        lines = JSON.parse(jsonText);
+        const parsed: ParsedResponse = JSON.parse(jsonText);
+
+        if (parsed.error) {
+          return {
+            text: extractedText,
+            success: false,
+            error: parsed.error,
+          };
+        }
+
+        lines = parsed.lines;
+        scenes = parsed.scenes;
+        sourceSha256 = parsed.sourceSha256;
       } catch (error) {
         console.warn('Failed to parse dialogue JSON, continuing without lines:', error);
       }
@@ -197,6 +229,8 @@ If extraction truly fails (e.g., unreadable file), output:
     return {
       text: extractedText,
       lines,
+      scenes,
+      sourceSha256,
       success: true,
     };
   } catch (error: any) {
@@ -213,6 +247,77 @@ async function extractTextFromDocument_Legacy(
   try {
     const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
+    const promptText = `You are a deterministic script extraction and dialogue parser. Follow these rules exactly. If any rule is unclear, prefer omission over invention.
+
+GLOBAL OUTPUT CONTRACT
+- Output exactly two sections, in this order, separated by this exact delimiter on its own line:
+---DIALOGUE_JSON---
+- Section 1 must be an exact, verbatim extraction of the file text (same characters, casing, hyphens/dashes, punctuation, line breaks, spacing as rendered reading order). Do not add, reorder, explain, summarize, translate, or normalize.
+- Nothing is allowed before Section 1 or after Section 2. No greetings, no closing lines, no commentary, no JSON outside Section 2.
+- After producing Section 1, compute sha256 of its raw bytes (UTF-8) and include it as "sourceSha256" inside Section 2 so the caller can validate integrity.
+
+SECTION 1 — VERBATIM TEXT
+Return the entire document text in reading order, including: scene headings (e.g., INT./EXT.), character names, dialogue, parentheticals, transitions, lyrics, SFX, and scene descriptions. Keep all hyphens/em dashes exactly as in source.
+Do not fix OCR quirks, smart quotes, spacing, page headers/footers—include them as seen.
+
+(Place Section 1 here. Immediately after it, place the delimiter ---DIALOGUE_JSON--- on its own line.)
+
+SECTION 2 — STRICT JSON (UTF-8, single top-level JSON object)
+Produce one JSON object with only these keys:
+
+{
+  "sourceSha256": "hex-string",
+  "lines": [
+    {
+      "lineId": "L1",
+      "character": "ASH",
+      "text": "I've got it!"
+    }
+  ],
+  "scenes": [
+    {
+      "sceneId": "S1",
+      "heading": "EXT. APARTMENT BALCONY - NIGHT",
+      "startLineId": "L1",
+      "endLineId": "L37",
+      "pageStart": 1,
+      "pageEnd": 3
+    }
+  ]
+}
+
+JSON field rules
+- sourceSha256: Lowercase hex SHA-256 of Section 1 raw UTF-8 bytes.
+- lines: Array of dialogue lines only (no action, no sluglines, no transitions).
+  - lineId: "L1", "L2", ... sequential, stable within this output.
+  - character: Speaker as printed in the script (usually UPPERCASE, keep accents and diacritics).
+  - text: Dialogue text only; include in-line parentheticals only if embedded in the speaking block for that character. Strip leading/trailing quotes solely if they are layout quotes around the whole line; otherwise keep characters exactly.
+- scenes: Array of scene objects in document order.
+  - sceneId: "S1", "S2", ...
+  - heading: The full scene heading line as printed (e.g., INT. HOFFMANS HUS - DAG, or 143 EXT. PALERMO, TORG - KVÄLL if numbered).
+  - startLineId/endLineId: First/last lineId that occur within this scene; if a scene has no dialogue, omit these two properties for that scene.
+  - pageStart/pageEnd: Page numbers if explicitly present in the text; otherwise set to null.
+
+Dialogue detection heuristics (apply in order)
+1. Speaker block start: A line that is (a) primarily uppercase letters (allow ÅÄÖ and diacritics), numbers or dots, and (b) not a scene heading/transitions. Examples: CHARLIE, ASH, MERRILL, JAN, HOFFMAN.
+2. Parentheticals on their own line directly under a speaker ((CONT'D), stage-asides): exclude from text unless inline within the dialogue sentence. Keep the dialogue text as printed otherwise.
+3. Dialogue continuation with intervening action: If the same speaker resumes immediately after a single block of action/stage direction without a new speaker name and the typography clearly continues the thought, treat it as the same logical line and merge the text with a single space.
+4. Interrupted lines / cut-offs: If a line ends with a hyphen/en-dash/em-dash indicating interruption (e.g., Helene..- or trailing -), preserve the exact dash character(s) in text. Do not normalize or remove the dash.
+5. Exclude non-dialogue: Scene headings like INT./EXT., transitions (CUT TO:), SFX-only lines, and pure action blocks are not lines.
+6. Bilingual scripts: Keep language and punctuation as printed; don't translate (e.g., Swedish – DAG, English - NIGHT).
+7. Speaker with (CONT'D): Remove the literal (CONT'D) from character but keep it for continuity logic. If (O.S.), (V.O.) etc. appear next to the name, exclude from character but retain any such notes only if embedded within text.
+
+Hard safety checks (model self-validation)
+Before emitting final output:
+- If you generated any text before Section 1 or after Section 2, delete it.
+- Validate JSON is a single object (not an array), strictly UTF-8, and can parse with standard JSON parsers. No comments, no trailing commas.
+- Recompute sourceSha256 against the exact bytes of Section 1 you are returning.
+
+Failure mode
+If extraction truly fails (e.g., unreadable file), output:
+- Section 1: an empty string, then the delimiter, then
+- Section 2: JSON object with "sourceSha256" of the empty string, and an additional key "error" describing why extraction failed. No extra prose anywhere.`;
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -221,7 +326,7 @@ async function extractTextFromDocument_Legacy(
           content: [
             {
               type: 'text',
-              text: 'You are a script extraction and dialogue parsing tool. Your output must be in two parts separated by these exact series of characters "---DIALOGUE_JSON---" and nothing else:\n\n1. First, extract ALL text from the document exactly as it appears, preserving formatting and structure. Include everything: dialogue, stage directions, scene descriptions, character names, etc. Do not add any information to this section. The content should only consist of what you extracted from the file. \n\n2. After the exact characters that separates the sections "---DIALOGUE_JSON---", provide a JSON array containing ONLY the dialogue lines (exclude stage directions, scene descriptions, and action lines). Each line should have:\n- lineId: unique identifier (e.g., "L1", "L2", "L3")\n- character: the character name speaking (uppercase)\n- text: the dialogue text only\n\nExample format after the separator that is exactly ""---DIALOGUE_JSON---"\n[{"lineId":"L1","character":"ASH","text":"Hello."},{"lineId":"L2","character":"CHARLIE","text":"Hi."}]\n\nIf you are unable to extract text, explain why extraction failed.',
+              text: promptText,
             },
             {
               type: 'file',
@@ -249,11 +354,25 @@ async function extractTextFromDocument_Legacy(
     const parts = extractedContent.split('---DIALOGUE_JSON---');
     const extractedText = parts[0]?.trim() || '';
     let lines: DialogueLine[] | undefined;
+    let scenes: Scene[] | undefined;
+    let sourceSha256: string | undefined;
 
     if (parts.length > 1) {
       try {
         const jsonText = parts[1].trim();
-        lines = JSON.parse(jsonText);
+        const parsed: ParsedResponse = JSON.parse(jsonText);
+
+        if (parsed.error) {
+          return {
+            text: extractedText,
+            success: false,
+            error: parsed.error,
+          };
+        }
+
+        lines = parsed.lines;
+        scenes = parsed.scenes;
+        sourceSha256 = parsed.sourceSha256;
       } catch (error) {
         console.warn('Failed to parse dialogue JSON, continuing without lines:', error);
       }
@@ -262,6 +381,8 @@ async function extractTextFromDocument_Legacy(
     return {
       text: extractedText,
       lines,
+      scenes,
+      sourceSha256,
       success: true,
     };
   } catch (error: any) {
