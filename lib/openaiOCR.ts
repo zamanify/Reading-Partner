@@ -85,7 +85,7 @@ async function extractTextFromPDF(
           content: [
             {
               type: 'text',
-              text: 'You are a deterministic script extraction and dialogue parsing tool. Follow these rules exactly and never include any commentary or extra text before or after the required output.
+              text: `You are a deterministic script extraction and dialogue parsing tool. Follow these rules exactly and never include any commentary or extra text before or after the required output.
 
 Your output must be in two parts separated by these exact characters on their own line:
 ---DIALOGUE_JSON---
@@ -101,7 +101,7 @@ Provide a JSON array containing ONLY the dialogue lines. Exclude stage direction
 
 Rules for dialogue detection:
 - A dialogue block starts with a line in uppercase (allowing ÅÄÖ and accented letters) that represents a character name, followed by one or more lines of text that belong to that character.
-- Parentheticals like (CONT’D), (V.O.), (O.S.), or similar should be ignored when identifying the character name.
+- Parentheticals like (CONT'D), (V.O.), (O.S.), or similar should be ignored when identifying the character name.
 - If a character continues speaking after a short action or description without a new character name, merge those dialogue parts into one line.
 - If a line ends with a dash or em-dash indicating interruption, preserve it exactly.
 - Keep punctuation, symbols, and ellipses exactly as they appear.
@@ -111,8 +111,7 @@ Rules for dialogue detection:
 The output format after the exact separator "---DIALOGUE_JSON---" must look like this example:
 [{"lineId":"L1","character":"ASH","text":"Hello."},{"lineId":"L2","character":"CHARLIE","text":"Hi."}]
 
-If extraction fails, return the reason in plain text instead of JSON, without adding any other commentary.
-',
+If extraction fails, return the reason in plain text instead of JSON, without adding any other commentary.`,
             },
             {
               type: 'file',
@@ -177,7 +176,33 @@ async function extractTextFromDocument_Legacy(
           content: [
             {
               type: 'text',
-              text: 'You are a deterministic script extraction and dialogue parsing tool. Follow these rules exactly and never include any commentary or extra text before or after the required output.\n\nYour output must be in two parts separated by these exact characters on their own line:\n---DIALOGUE_JSON---\n\n1. First section:\nExtract ALL text from the document exactly as it appears, preserving formatting, punctuation, line breaks, spacing, and structure. Include everything: dialogue, stage directions, scene descriptions, character names, transitions, parentheticals, and page numbers. Do not add, reorder, interpret, summarize, or normalize any content. The section should be a perfect verbatim copy of the text as read from the PDF.\n\n2. Second section (after the separator):\nProvide a JSON array containing ONLY the dialogue lines. Exclude stage directions, scene descriptions, transitions, and action lines. Each dialogue line must include:\n- lineId: unique identifier (e.g., "L1", "L2", "L3")\n- character: the character name speaking (uppercase)\n- text: the dialogue text only\n\nRules for dialogue detection:\n- A dialogue block starts with a line in uppercase (allowing ÅÄÖ and accented letters) that represents a character name, followed by one or more lines of text that belong to that character.\n- Parentheticals like (CONT\'D), (V.O.), (O.S.), or similar should be ignored when identifying the character name.\n- If a character continues speaking after a short action or description without a new character name, merge those dialogue parts into one line.\n- If a line ends with a dash or em-dash indicating interruption, preserve it exactly.\n- Keep punctuation, symbols, and ellipses exactly as they appear.\n- Do not include scene headings (INT./EXT.), transitions (CUT TO:), or non-dialogue text in the JSON.\n- Keep Swedish and English text as written; do not translate or normalize.\n\nThe output format after the exact separator "---DIALOGUE_JSON---" must look like this example:\n[{"lineId":"L1","character":"ASH","text":"Hello."},{"lineId":"L2","character":"CHARLIE","text":"Hi."}]\n\nIf extraction fails, return the reason in plain text instead of JSON, without adding any other commentary.\n',
+              text: `You are a deterministic script extraction and dialogue parsing tool. Follow these rules exactly and never include any commentary or extra text before or after the required output.
+
+Your output must be in two parts separated by these exact characters on their own line:
+---DIALOGUE_JSON---
+
+1. First section:
+Extract ALL text from the document exactly as it appears, preserving formatting, punctuation, line breaks, spacing, and structure. Include everything: dialogue, stage directions, scene descriptions, character names, transitions, parentheticals, and page numbers. Do not add, reorder, interpret, summarize, or normalize any content. The section should be a perfect verbatim copy of the text as read from the PDF.
+
+2. Second section (after the separator):
+Provide a JSON array containing ONLY the dialogue lines. Exclude stage directions, scene descriptions, transitions, and action lines. Each dialogue line must include:
+- lineId: unique identifier (e.g., "L1", "L2", "L3")
+- character: the character name speaking (uppercase)
+- text: the dialogue text only
+
+Rules for dialogue detection:
+- A dialogue block starts with a line in uppercase (allowing ÅÄÖ and accented letters) that represents a character name, followed by one or more lines of text that belong to that character.
+- Parentheticals like (CONT'D), (V.O.), (O.S.), or similar should be ignored when identifying the character name.
+- If a character continues speaking after a short action or description without a new character name, merge those dialogue parts into one line.
+- If a line ends with a dash or em-dash indicating interruption, preserve it exactly.
+- Keep punctuation, symbols, and ellipses exactly as they appear.
+- Do not include scene headings (INT./EXT.), transitions (CUT TO:), or non-dialogue text in the JSON.
+- Keep Swedish and English text as written; do not translate or normalize.
+
+The output format after the exact separator "---DIALOGUE_JSON---" must look like this example:
+[{"lineId":"L1","character":"ASH","text":"Hello."},{"lineId":"L2","character":"CHARLIE","text":"Hi."}]
+
+If extraction fails, return the reason in plain text instead of JSON, without adding any other commentary.`,
             },
             {
               type: 'file',
