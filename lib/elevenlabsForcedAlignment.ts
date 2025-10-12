@@ -90,6 +90,10 @@ async function callForcedAlignmentAPI(
 
     const alignmentData = await response.json();
 
+    console.log('=== FORCED ALIGNMENT API RESPONSE ===');
+    console.log(JSON.stringify(alignmentData, null, 2));
+    console.log('=== END OF RESPONSE ===');
+
     if (!alignmentData.characters || !alignmentData.words) {
       throw new Error('Invalid response format from Forced Alignment API');
     }
