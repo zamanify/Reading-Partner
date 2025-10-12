@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { DialogueLine } from './openaiOCR';
 import { generateDialogueAudio } from './elevenlabsTextToDialogue';
+import { generateCueSheet, ForcedAlignmentResponse } from './elevenlabsForcedAlignment';
 import { Alert } from 'react-native';
 
 export interface Project {
@@ -10,6 +11,7 @@ export interface Project {
   script?: string;
   lines?: DialogueLine[];
   audio_file?: string;
+  cue_sheet?: ForcedAlignmentResponse;
   created_at: string;
   updated_at: string;
 }
@@ -155,6 +157,17 @@ class SupabaseDatabaseManager {
       try {
         const audioFileUrl = await generateDialogueAudio(id, lines);
         await this.updateProjectAudioFile(id, audioFileUrl);
+
+        try {
+          const cueSheet = await generateCueSheet(audioFileUrl, lines);
+          await this.updateProjectCueSheet(id, cueSheet);
+        } catch (cueSheetError: any) {
+          console.error('Failed to generate cue sheet:', cueSheetError);
+          Alert.alert(
+            'Cue Sheet Generation Failed',
+            'The audio was saved, but cue sheet generation failed. You can try again later.'
+          );
+        }
       } catch (audioError: any) {
         console.error('Failed to generate audio:', audioError);
         Alert.alert(
@@ -183,6 +196,28 @@ class SupabaseDatabaseManager {
 
     if (error) {
       console.error('Failed to update project audio file:', error);
+      throw error;
+    }
+  }
+
+  async updateProjectCueSheet(id: string, cueSheet: ForcedAlignmentResponse): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        cue_sheet: cueSheet,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to update project cue sheet:', error);
       throw error;
     }
   }
