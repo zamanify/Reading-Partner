@@ -86,7 +86,7 @@ export async function generateDialogueAudio(
     const requestPayload: ElevenLabsRequestPayload = {
       inputs,
       settings: {
-        stability: 0.5,
+        stability: 0.0,
       },
       pronunciationDictionaryLocators: [],
       applyTextNormalization: 'auto',
