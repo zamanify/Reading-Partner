@@ -4,7 +4,7 @@ import { DialogueLine } from './openaiOCR';
 const ELEVENLABS_API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY;
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-dialogue';
 
-const VOICE_ID_FIRST = 'Cz0K1kOv9tD8l0b5Qu53';
+const VOICE_ID_FIRST = 'd3MFdIuCfbAIwiu7jC4a';
 const VOICE_ID_SECOND = 'MClEFoImJXBTgLwdLI5n';
 
 interface VoiceMapping {
