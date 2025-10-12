@@ -13,7 +13,7 @@ interface VoiceMapping {
 
 interface ElevenLabsInput {
   text: string;
-  voiceId: string;
+  voice_id: string;
 }
 
 interface ElevenLabsRequestPayload {
@@ -80,7 +80,7 @@ export async function generateDialogueAudio(
 
     const inputs: ElevenLabsInput[] = sortedLines.map(line => ({
       text: line.text,
-      voiceId: voiceMapping[line.character.trim().toUpperCase()] || VOICE_ID_FIRST,
+      voice_id: voiceMapping[line.character.trim().toUpperCase()] || VOICE_ID_FIRST,
     }));
 
     const requestPayload: ElevenLabsRequestPayload = {
