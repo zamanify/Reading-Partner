@@ -109,8 +109,20 @@ export async function generateDialogueAudio(
 
     const audioBlob = await response.blob();
 
-    const audioArrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = new Uint8Array(audioArrayBuffer);
+    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result instanceof ArrayBuffer) {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read blob as ArrayBuffer'));
+        }
+      };
+      reader.onerror = () => reject(reader.error);
+      reader.readAsArrayBuffer(audioBlob);
+    });
+
+    const audioBuffer = new Uint8Array(arrayBuffer);
 
     const timestamp = Date.now();
     const fileName = `project-${projectId}-${timestamp}.mp3`;
