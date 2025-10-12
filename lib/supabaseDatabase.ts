@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import { DialogueLine } from './openaiOCR';
+import { generateDialogueAudio } from './elevenlabsTextToDialogue';
+import { Alert } from 'react-native';
 
 export interface Project {
   id: string;
@@ -7,6 +9,7 @@ export interface Project {
   name: string;
   script?: string;
   lines?: DialogueLine[];
+  audio_file?: string;
   created_at: string;
   updated_at: string;
 }
@@ -145,6 +148,41 @@ class SupabaseDatabaseManager {
 
     if (error) {
       console.error('Failed to update project script and lines:', error);
+      throw error;
+    }
+
+    if (lines && lines.length > 0) {
+      try {
+        const audioFileUrl = await generateDialogueAudio(id, lines);
+        await this.updateProjectAudioFile(id, audioFileUrl);
+      } catch (audioError: any) {
+        console.error('Failed to generate audio:', audioError);
+        Alert.alert(
+          'Audio Generation Failed',
+          'The script was saved, but audio generation failed. You can try again later.'
+        );
+      }
+    }
+  }
+
+  async updateProjectAudioFile(id: string, audioFileUrl: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        audio_file: audioFileUrl,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to update project audio file:', error);
       throw error;
     }
   }
