@@ -35,12 +35,29 @@ async function downloadAudioFile(audioFileUrl: string): Promise<Blob> {
       throw new Error('Invalid audio file URL');
     }
 
+    console.log('[downloadAudioFile] Downloading file:', fileName);
+
     const { data, error } = await supabase.storage
       .from('audio_files')
       .download(fileName);
 
     if (error) {
       throw new Error(`Failed to download audio file: ${error.message}`);
+    }
+
+    if (!data) {
+      throw new Error('Downloaded file is null or undefined');
+    }
+
+    console.log('[downloadAudioFile] Downloaded blob - size:', data.size, 'type:', data.type);
+
+    if (data.size === 0) {
+      throw new Error('Downloaded file is empty (0 bytes)');
+    }
+
+    if (!data.type || data.type === '') {
+      console.log('[downloadAudioFile] Blob has no MIME type, creating new blob with audio/mpeg type');
+      return new Blob([data], { type: 'audio/mpeg' });
     }
 
     return data;
@@ -55,9 +72,18 @@ async function callForcedAlignmentAPI(
   transcriptText: string
 ): Promise<ForcedAlignmentResponse> {
   try {
+    console.log('[callForcedAlignmentAPI] Creating FormData with blob - size:', audioBlob.size, 'type:', audioBlob.type);
+    console.log('[callForcedAlignmentAPI] Transcript text length:', transcriptText.length);
+
+    const audioBlobWithType = new Blob([audioBlob], { type: 'audio/mpeg' });
+
+    console.log('[callForcedAlignmentAPI] New blob with explicit type - size:', audioBlobWithType.size, 'type:', audioBlobWithType.type);
+
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.mp3');
+    formData.append('file', audioBlobWithType, 'audio.mp3');
     formData.append('text', transcriptText);
+
+    console.log('[callForcedAlignmentAPI] Sending request to ElevenLabs API');
 
     const response = await fetch(FORCED_ALIGNMENT_API_URL, {
       method: 'POST',
@@ -67,12 +93,16 @@ async function callForcedAlignmentAPI(
       body: formData,
     });
 
+    console.log('[callForcedAlignmentAPI] Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('[callForcedAlignmentAPI] API error response:', errorText);
       throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
     const alignmentData = await response.json();
+    console.log('[callForcedAlignmentAPI] Successfully received alignment data');
 
     if (!alignmentData.characters || !alignmentData.words) {
       throw new Error('Invalid response format from Forced Alignment API');
