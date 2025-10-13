@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { DialogueLine } from './openaiOCR';
+import * as FileSystem from 'expo-file-system';
 
 const ELEVENLABS_API_KEY = process.env.EXPO_PUBLIC_ELEVENLABS_API_KEY;
 const FORCED_ALIGNMENT_API_URL = 'https://api.elevenlabs.io/v1/forced-alignment';
@@ -28,7 +29,12 @@ function extractTranscriptText(lines: DialogueLine[]): string {
   return sortedLines.map(line => line.text).join(' ');
 }
 
-async function downloadAudioFile(audioFileUrl: string): Promise<Blob> {
+interface AudioFileResult {
+  blob: Blob;
+  fileUri: string;
+}
+
+async function downloadAudioFile(audioFileUrl: string): Promise<AudioFileResult> {
   try {
     console.log('[ALIGNMENT] ===== DOWNLOADING AUDIO FILE =====');
     console.log('[ALIGNMENT] Audio file URL:', audioFileUrl);
@@ -65,16 +71,32 @@ async function downloadAudioFile(audioFileUrl: string): Promise<Blob> {
       throw new Error('Downloaded file is empty (0 bytes)');
     }
 
-    if (!data.type || data.type === '') {
-      console.log('[ALIGNMENT] ⚠️ Warning: Blob has no MIME type');
-      console.log('[ALIGNMENT] Creating new blob with audio/mpeg type');
-      const newBlob = new Blob([data], { type: 'audio/mpeg' });
-      console.log('[ALIGNMENT] New blob - size:', newBlob.size, 'type:', newBlob.type);
-      return newBlob;
+    console.log('[ALIGNMENT] Saving blob to local filesystem...');
+    const fileUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+    const reader = new FileReader();
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(data);
+    });
+
+    await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    console.log('[ALIGNMENT] ✓ File saved to:', fileUri);
+
+    const fileInfo = await FileSystem.getInfoAsync(fileUri);
+    if (fileInfo.exists) {
+      console.log('[ALIGNMENT] ✓ File verified - size:', fileInfo.size, 'bytes');
     }
 
-    console.log('[ALIGNMENT] ✓ Blob has valid type, returning as-is');
-    return data;
+    return { blob: data, fileUri };
   } catch (error: any) {
     console.error('[ALIGNMENT] ERROR in downloadAudioFile:', error);
     throw new Error(error.message || 'Failed to download audio file');
@@ -82,24 +104,25 @@ async function downloadAudioFile(audioFileUrl: string): Promise<Blob> {
 }
 
 async function callForcedAlignmentAPI(
-  audioBlob: Blob,
+  fileUri: string,
   transcriptText: string
 ): Promise<ForcedAlignmentResponse> {
   try {
     console.log('[ALIGNMENT] ===== CALLING ELEVENLABS API =====');
-    console.log('[ALIGNMENT] Input blob - size:', audioBlob.size, 'bytes, type:', audioBlob.type);
+    console.log('[ALIGNMENT] File URI:', fileUri);
     console.log('[ALIGNMENT] Transcript text length:', transcriptText.length, 'characters');
     console.log('[ALIGNMENT] Transcript preview:', transcriptText.substring(0, 100) + '...');
 
-    console.log('[ALIGNMENT] Creating new blob with explicit audio/mpeg type');
-    const audioBlobWithType = new Blob([audioBlob], { type: 'audio/mpeg' });
-    console.log('[ALIGNMENT] Final blob - size:', audioBlobWithType.size, 'bytes, type:', audioBlobWithType.type);
-
-    console.log('[ALIGNMENT] Building FormData...');
+    console.log('[ALIGNMENT] Building FormData with React Native format...');
     const formData = new FormData();
-    formData.append('file', audioBlobWithType, 'audio.mp3');
+
+    formData.append('file', {
+      uri: fileUri,
+      type: 'audio/mpeg',
+      name: 'audio.mp3',
+    } as any);
     formData.append('text', transcriptText);
-    console.log('[ALIGNMENT] ✓ FormData created with file (audio.mp3) and text');
+    console.log('[ALIGNMENT] ✓ FormData created with file URI and text');
 
     console.log('[ALIGNMENT] API URL:', FORCED_ALIGNMENT_API_URL);
     console.log('[ALIGNMENT] Sending POST request to ElevenLabs...');
@@ -150,6 +173,8 @@ export async function generateCueSheet(
   audioFileUrl: string,
   lines: DialogueLine[]
 ): Promise<ForcedAlignmentResponse> {
+  let tempFileUri: string | null = null;
+
   try {
     console.log('[ALIGNMENT] ========================================');
     console.log('[ALIGNMENT] STARTING CUE SHEET GENERATION');
@@ -174,12 +199,18 @@ export async function generateCueSheet(
     }
 
     console.log('[ALIGNMENT] Step 1/2: Downloading audio file...');
-    const audioBlob = await downloadAudioFile(audioFileUrl);
-    console.log('[ALIGNMENT] ✓ Audio file downloaded successfully');
+    const { fileUri } = await downloadAudioFile(audioFileUrl);
+    tempFileUri = fileUri;
+    console.log('[ALIGNMENT] ✓ Audio file downloaded and saved to filesystem');
 
     console.log('[ALIGNMENT] Step 2/2: Calling Forced Alignment API...');
-    const alignmentData = await callForcedAlignmentAPI(audioBlob, transcriptText);
+    const alignmentData = await callForcedAlignmentAPI(fileUri, transcriptText);
     console.log('[ALIGNMENT] ✓ Alignment data received successfully');
+
+    console.log('[ALIGNMENT] Cleaning up temporary file...');
+    await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
+    console.log('[ALIGNMENT] ✓ Temporary file deleted');
+    tempFileUri = null;
 
     console.log('[ALIGNMENT] ========================================');
     console.log('[ALIGNMENT] CUE SHEET GENERATION COMPLETED');
@@ -191,6 +222,17 @@ export async function generateCueSheet(
     console.error('[ALIGNMENT] Error type:', error.name);
     console.error('[ALIGNMENT] Error message:', error.message);
     console.error('[ALIGNMENT] Full error:', error);
+
+    if (tempFileUri) {
+      console.log('[ALIGNMENT] Cleaning up temporary file after error...');
+      try {
+        await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
+        console.log('[ALIGNMENT] ✓ Temporary file deleted');
+      } catch (cleanupError) {
+        console.error('[ALIGNMENT] Failed to delete temporary file:', cleanupError);
+      }
+    }
+
     throw new Error(error.message || 'Failed to generate cue sheet');
   }
 }
