@@ -161,9 +161,9 @@ class SupabaseDatabaseManager {
 
         try {
           const cueSheet = await generateForcedAlignment(audioFileUrl, lines);
-          await this.updateProjectForcedAlignment(id, ForcedAlignmentForcedAlignment);
-        } catch (cueSheetError: any) {
-          console.error('Failed to generate cue sheet:', cueSheetError);
+          await this.updateProjectForcedAlignment(id, ForcedAlignment);
+        } catch (ForcedAlignmentError: any) {
+          console.error('Failed to get Forced Alignment:', ForcedAlignmentError);
           Alert.alert(
             'Cue Sheet Generation Failed',
             'The audio was saved, but cue sheet generation failed. You can try again later.'
@@ -201,7 +201,7 @@ class SupabaseDatabaseManager {
     }
   }
 
-  async updateProjectCueSheet(id: string, cueSheet: ForcedAlignmentResponse): Promise<void> {
+  async updateProjectForcedAlignment(id: string, ForcedAlignment: ForcedAlignmentResponse): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
