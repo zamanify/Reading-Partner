@@ -32,4 +32,4 @@ BEGIN
 END $$;
 
 -- Add GIN index for efficient JSONB queries on forced_alignment column
-CREATE INDEX IF NOT EXISTS idx_projects_cue_sheet ON projects USING GIN (forced_alignment) WHERE forced_alignment IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_projects_forced_alignment ON projects USING GIN (forced_alignment) WHERE forced_alignment IS NOT NULL;
