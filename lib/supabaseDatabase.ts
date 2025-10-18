@@ -211,7 +211,7 @@ class SupabaseDatabaseManager {
     const { error } = await supabase
       .from('projects')
       .update({
-        forced_alignment: cueSheet,
+        forced_alignment: ForcedAlignment,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
