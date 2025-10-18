@@ -31,5 +31,5 @@ BEGIN
   END IF;
 END $$;
 
--- Add GIN index for efficient JSONB queries on cue_sheet column
+-- Add GIN index for efficient JSONB queries on forced_alignment column
 CREATE INDEX IF NOT EXISTS idx_projects_cue_sheet ON projects USING GIN (cue_sheet) WHERE cue_sheet IS NOT NULL;
