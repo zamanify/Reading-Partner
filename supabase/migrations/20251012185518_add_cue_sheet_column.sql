@@ -13,7 +13,7 @@
       containing character-level and word-level timing data with start/end timestamps
   
   ## Performance
-  - Added GIN index on `cue_sheet` column for efficient JSONB queries
+  - Added GIN index on `forced_alignment` column for efficient JSONB queries
   
   ## Security
   - Existing RLS policies automatically cover the new column
