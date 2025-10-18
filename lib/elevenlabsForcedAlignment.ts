@@ -169,7 +169,8 @@ async function callForcedAlignmentAPI(
   }
 }
 
-export async function generateCueSheet(
+export async function generate
+  (
   audioFileUrl: string,
   lines: DialogueLine[]
 ): Promise<ForcedAlignmentResponse> {
