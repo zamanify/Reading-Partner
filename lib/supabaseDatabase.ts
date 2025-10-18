@@ -12,6 +12,7 @@ export interface Project {
   lines?: DialogueLine[];
   audio_file?: string;
   cue_sheet?: ForcedAlignmentResponse;
+  chosen_character?: string;
   created_at: string;
   updated_at: string;
 }
@@ -237,6 +238,28 @@ class SupabaseDatabaseManager {
 
     if (error) {
       console.error('Failed to delete project:', error);
+      throw error;
+    }
+  }
+
+  async updateProjectChosenCharacter(id: string, chosenCharacter: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        chosen_character: chosenCharacter,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Failed to update chosen character:', error);
       throw error;
     }
   }
