@@ -25,7 +25,7 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
-    WHERE table_name = 'projects' AND column_name = 'cue_sheet'
+    WHERE table_name = 'projects' AND column_name = 'forced_alignment'
   ) THEN
     ALTER TABLE projects ADD COLUMN cue_sheet jsonb;
   END IF;
