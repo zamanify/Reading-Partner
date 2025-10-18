@@ -213,7 +213,7 @@ export async function generateForcedAlignment(
     tempFileUri = null;
 
     console.log('[ALIGNMENT] ========================================');
-    console.log('[ALIGNMENT] CUE SHEET GENERATION COMPLETED');
+    console.log('[ALIGNMENT] FORCED ALIGNMENT COMPLETED');
     console.log('[ALIGNMENT] ========================================');
 
     return alignmentData;
