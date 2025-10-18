@@ -177,7 +177,7 @@ export async function generateForcedAlignment(
 
   try {
     console.log('[ALIGNMENT] ========================================');
-    console.log('[ALIGNMENT] STARTING CUE SHEET GENERATION');
+    console.log('[ALIGNMENT] STARTING FORCED ALIGNMENT');
     console.log('[ALIGNMENT] ========================================');
     console.log('[ALIGNMENT] Audio file URL:', audioFileUrl);
     console.log('[ALIGNMENT] Number of dialogue lines:', lines.length);
