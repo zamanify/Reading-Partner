@@ -20,7 +20,7 @@
   - Users can only access cue sheets for their own projects
 */
 
--- Add cue_sheet column to projects table
+-- Add forced_alignment column to projects table
 DO $$
 BEGIN
   IF NOT EXISTS (
