@@ -17,7 +17,7 @@
   
   ## Security
   - Existing RLS policies automatically cover the new column
-  - Users can only access cue sheets for their own projects
+  - Users can only access forced aligmnent for their own projects
 */
 
 -- Add forced_alignment column to projects table
