@@ -1,5 +1,5 @@
 /*
-  # Add cue_sheet column to projects table
+  # Add forced_alignment column to projects table
 
   ## Overview
   This migration adds support for storing ElevenLabs Forced Alignment metadata
@@ -9,7 +9,7 @@
   
   ### Modified Tables
   - `projects`
-    - Added `cue_sheet` (jsonb, nullable): Stores the raw JSON response from ElevenLabs Forced Alignment API
+    - Added `forced_alignment` (jsonb, nullable): Stores the raw JSON response from ElevenLabs Forced Alignment API
       containing character-level and word-level timing data with start/end timestamps
   
   ## Performance
