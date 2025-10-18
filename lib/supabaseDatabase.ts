@@ -165,8 +165,8 @@ class SupabaseDatabaseManager {
         } catch (ForcedAlignmentError: any) {
           console.error('Failed to get Forced Alignment:', ForcedAlignmentError);
           Alert.alert(
-            'Cue Sheet Generation Failed',
-            'The audio was saved, but cue sheet generation failed. You can try again later.'
+            'Forced Alignment Failed',
+            'The audio was saved, but Forced Alignment failed. You can try again later.'
           );
         }
       } catch (audioError: any) {
