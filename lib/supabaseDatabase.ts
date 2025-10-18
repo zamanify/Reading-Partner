@@ -161,7 +161,7 @@ class SupabaseDatabaseManager {
 
         try {
           const cueSheet = await generateForcedAlignment(audioFileUrl, lines);
-          await this.updateProjectCueSheet(id, cueSheet);
+          await this.updateProjectForcedAlignment(id, ForcedAlignmentForcedAlignment);
         } catch (cueSheetError: any) {
           console.error('Failed to generate cue sheet:', cueSheetError);
           Alert.alert(
