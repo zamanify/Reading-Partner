@@ -60,7 +60,7 @@ export default function CounterReaderScreen() {
       const characterList: DummyCharacter[] = uniqueCharacterNames.map((name, index) => ({
         id: `char_${index}`,
         name: name,
-        isCounterReader: false
+        isCounterReader: true
       }));
 
       setCharacters(characterList);
