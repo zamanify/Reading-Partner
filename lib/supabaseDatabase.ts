@@ -11,7 +11,7 @@ export interface Project {
   script?: string;
   lines?: DialogueLine[];
   audio_file?: string;
-  cue_sheet?: ForcedAlignmentResponse;
+  forced_alignment?: ForcedAlignmentResponse;
   chosen_character?: string;
   created_at: string;
   updated_at: string;
