@@ -233,6 +233,6 @@ export async function generateForcedAlignment(
       }
     }
 
-    throw new Error(error.message || 'Failed to generate cue sheet');
+    throw new Error(error.message || 'Failed Forced Alignment');
   }
 }
