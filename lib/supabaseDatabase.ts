@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { DialogueLine } from './openaiOCR';
 import { generateDialogueAudio } from './elevenlabsTextToDialogue';
-import { generateCueSheet, ForcedAlignmentResponse } from './elevenlabsForcedAlignment';
+import { generateForcedAlignment, ForcedAlignmentResponse } from './elevenlabsForcedAlignment';
 import { Alert } from 'react-native';
 
 export interface Project {
