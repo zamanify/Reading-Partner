@@ -5,6 +5,8 @@ import { ArrowLeft, Menu } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import HamburgerMenu from '../components/HamburgerMenu';
+import { supabaseDatabaseManager } from '../lib/supabaseDatabase';
+import { DialogueLine } from '../lib/openaiOCR';
 
 type Gender = 'Female' | 'Male' | 'Neutral';
 type Mood = 'Neutral' | 'Action' | 'Adventure' | 'Comedy' | 'Drama' | 'Horror' | 'Thriller' | 'Sci-Fi' | 'Kids';
@@ -25,18 +27,62 @@ interface DummyCharacter {
 export default function CounterReaderScreen() {
   const { projectId } = useLocalSearchParams<{ projectId: string }>();
 
-  // Dummy character data for UI demonstration
-  const dummyCharacters: DummyCharacter[] = [
-    { id: '1', name: 'Character A', isCounterReader: false },
-    { id: '2', name: 'Character B', isCounterReader: false },
-    { id: '3', name: 'Character C', isCounterReader: false },
-  ];
-
-  const [characters, setCharacters] = useState<DummyCharacter[]>(dummyCharacters);
+  const [characters, setCharacters] = useState<DummyCharacter[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<DummyCharacter | null>(null);
   const [characterConfigs, setCharacterConfigs] = useState<Record<string, CharacterConfig>>({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
+  const [chosenCharacterName, setChosenCharacterName] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadProjectAndCharacters();
+  }, [projectId]);
+
+  const loadProjectAndCharacters = async () => {
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const project = await supabaseDatabaseManager.getProjectById(projectId);
+
+      if (!project || !project.lines || project.lines.length === 0) {
+        Alert.alert(
+          'No Characters Found',
+          'No dialogue lines found in this script. Please review the script and try again.'
+        );
+        setLoading(false);
+        return;
+      }
+
+      const uniqueCharacterNames = extractUniqueCharacters(project.lines);
+      const characterList: DummyCharacter[] = uniqueCharacterNames.map((name, index) => ({
+        id: `char_${index}`,
+        name: name,
+        isCounterReader: true
+      }));
+
+      setCharacters(characterList);
+    } catch (error) {
+      console.error('Failed to load project:', error);
+      Alert.alert('Error', 'Failed to load project data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const extractUniqueCharacters = (lines: DialogueLine[]): string[] => {
+    const characterSet = new Set<string>();
+
+    lines.forEach(line => {
+      if (line.character && line.character.trim()) {
+        characterSet.add(line.character.trim().toUpperCase());
+      }
+    });
+
+    return Array.from(characterSet).sort();
+  };
 
   const handleBack = () => {
     router.back();
@@ -45,13 +91,11 @@ export default function CounterReaderScreen() {
   const handleCharacterToggle = (character: DummyCharacter, isCounterReader: boolean) => {
     if (!character.id) return;
 
-    // Update local state only (no database persistence)
     setCharacters(prev => prev.map(char =>
       char.id === character.id ? { ...char, isCounterReader } : char
     ));
 
     if (isCounterReader) {
-      // Initialize config for new counter reader
       setCharacterConfigs(prev => ({
         ...prev,
         [character.id]: {
@@ -61,8 +105,8 @@ export default function CounterReaderScreen() {
         }
       }));
       setSelectedCharacter({ ...character, isCounterReader: true });
+      setChosenCharacterName(null);
     } else {
-      // Remove config and deselect if this was selected
       setCharacterConfigs(prev => {
         const newConfigs = { ...prev };
         delete newConfigs[character.id];
@@ -71,6 +115,7 @@ export default function CounterReaderScreen() {
       if (selectedCharacter?.id === character.id) {
         setSelectedCharacter(null);
       }
+      setChosenCharacterName(character.name);
     }
   };
 
@@ -92,12 +137,28 @@ export default function CounterReaderScreen() {
     }));
   };
 
-  const handleSubmit = () => {
-    // Navigate to project overview
-    router.push({
-      pathname: '/project-overview',
-      params: { projectId }
-    });
+  const handleSubmit = async () => {
+    if (!projectId) {
+      Alert.alert('Error', 'Project ID is missing');
+      return;
+    }
+
+    if (!chosenCharacterName) {
+      Alert.alert('No Character Selected', 'Please select which character you will play by toggling it to "ME".');
+      return;
+    }
+
+    try {
+      await supabaseDatabaseManager.updateProjectChosenCharacter(projectId, chosenCharacterName);
+
+      router.push({
+        pathname: '/project-overview',
+        params: { projectId }
+      });
+    } catch (error) {
+      console.error('Failed to save chosen character:', error);
+      Alert.alert('Error', 'Failed to save your character selection. Please try again.');
+    }
   };
 
   const handleMenuPress = () => {
