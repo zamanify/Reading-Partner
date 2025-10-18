@@ -160,7 +160,7 @@ class SupabaseDatabaseManager {
         await this.updateProjectAudioFile(id, audioFileUrl);
 
         try {
-          const cueSheet = await generateForcedAlignment(audioFileUrl, lines);
+          const ForcedAlignment = await generateForcedAlignment(audioFileUrl, lines);
           await this.updateProjectForcedAlignment(id, ForcedAlignment);
         } catch (ForcedAlignmentError: any) {
           console.error('Failed to get Forced Alignment:', ForcedAlignmentError);
