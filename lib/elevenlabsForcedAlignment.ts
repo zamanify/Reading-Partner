@@ -169,8 +169,7 @@ async function callForcedAlignmentAPI(
   }
 }
 
-export async function generate
-  (
+export async function generateForcedAlignment(
   audioFileUrl: string,
   lines: DialogueLine[]
 ): Promise<ForcedAlignmentResponse> {
@@ -219,7 +218,7 @@ export async function generate
 
     return alignmentData;
   } catch (error: any) {
-    console.error('[ALIGNMENT] ❌❌❌ FATAL ERROR in generateCueSheet ❌❌❌');
+    console.error('[ALIGNMENT] ❌❌❌ FATAL ERROR in generateForcedAlignment ❌❌❌');
     console.error('[ALIGNMENT] Error type:', error.name);
     console.error('[ALIGNMENT] Error message:', error.message);
     console.error('[ALIGNMENT] Full error:', error);
